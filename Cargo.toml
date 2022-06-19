@@ -14,7 +14,7 @@ exclude = ["webview-sys/**", "webview-examples/**", ".github/**", "Cargo.lock"]
 urlencoding = "1.1"
 webview-sys = { path = "webview-sys", version = "0.6.2" }
 boxfnonce = "0.1"
-tinyfiledialogs = "3.3"
+tinyfiledialogs = {version = "3.3", default-features = false}
 
 [features]
 edge = ["webview-sys/edge"]

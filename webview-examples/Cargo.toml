@@ -18,7 +18,7 @@ web-view = { path = "..", version = "0.7.3" }
 edge = ["web-view/edge"]
 
 [dev-dependencies]
-tinyfiledialogs = "3.3"
+tinyfiledialogs = {version = "3.3", default-features = false}
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
