@@ -1,16 +1,16 @@
 #![windows_subsystem = "windows"]
 
-use actix_web::{body::Body, dev::Server, rt, web, App, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{dev::ServerHandle, rt, web, App, HttpRequest, HttpResponse, HttpServer};
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
 use std::{borrow::Cow, sync::mpsc, thread};
-use web_view::*;
+use web_view::Content;
 
 #[derive(RustEmbed)]
 #[folder = "examples/actix"]
 struct Asset;
 
-fn assets(req: HttpRequest) -> HttpResponse {
+async fn assets(req: HttpRequest) -> HttpResponse {
     let path = if req.path() == "/" {
         // if there is no path, return default file
         "index.html"
@@ -22,7 +22,7 @@ fn assets(req: HttpRequest) -> HttpResponse {
     // query the file from embedded asset with specified path
     match Asset::get(path) {
         Some(content) => {
-            let body: Body = match content {
+            let body: web::Bytes = match content {
                 Cow::Borrowed(bytes) => bytes.into(),
                 Cow::Owned(bytes) => bytes.into(),
             };
@@ -34,11 +34,14 @@ fn assets(req: HttpRequest) -> HttpResponse {
     }
 }
 
-fn run_actix(server_tx: mpsc::Sender<Server>, port_tx: mpsc::Sender<u16>) -> std::io::Result<()> {
+fn run_actix(server_tx: mpsc::Sender<ServerHandle>, port_tx: mpsc::Sender<u16>) -> std::io::Result<()> {
     let server = rt::System::new();
 
     server.block_on(async {
-        let server = HttpServer::new(|| App::new().service(web::resource("*").to(assets)))
+        let server = HttpServer::new(||
+                App::new()
+                    .default_service(web::to(assets))
+                )
             .bind("127.0.0.1:0")?;
 
         // we specified the port to be 0,
@@ -51,7 +54,7 @@ fn run_actix(server_tx: mpsc::Sender<Server>, port_tx: mpsc::Sender<u16>) -> std
         port_tx.send(port).unwrap();
 
         let server = server.run();
-        server_tx.send(server.clone()).unwrap();
+        server_tx.send(server.handle().clone()).unwrap();
         server.await
     })
 }
